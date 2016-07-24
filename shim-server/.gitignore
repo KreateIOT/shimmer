@@ -2,3 +2,6 @@
 shim-server.iml
 src/main/resources/public
 build
+.project
+.classpath
+.settings/
