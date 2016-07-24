@@ -16,7 +16,32 @@
 
 package org.openmhealth.shimmer.common.controller;
 
-import org.openmhealth.shim.*;
+import static java.util.Collections.singletonList;
+import static org.openmhealth.shimmer.common.service.URIUtils.appendUri;
+import static org.openmhealth.shimmer.common.service.URIUtils.createQuery;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.openmhealth.shim.AccessParameters;
+import org.openmhealth.shim.AccessParametersRepo;
+import org.openmhealth.shim.AuthorizationRequestParameters;
+import org.openmhealth.shim.AuthorizationRequestParametersRepo;
+import org.openmhealth.shim.AuthorizationResponse;
+import org.openmhealth.shim.ShimAuthentication;
+import org.openmhealth.shim.ShimException;
+import org.openmhealth.shim.ShimRegistry;
+import org.openmhealth.shim.ShimServerConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
@@ -27,15 +52,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.*;
-
-import static java.util.Collections.singletonList;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 
 /**
@@ -71,28 +87,28 @@ public class LegacyAuthorizationController {
      * @param username username fragment to search.
      * @return List of access parameters.
      */
-    @RequestMapping(value = "authorizations", produces = APPLICATION_JSON_VALUE)
-    public List<Map<String, Object>> authorizations(@RequestParam(value = "username") String username)
-            throws ShimException {
-
-        List<AccessParameters> accessParameters = accessParametersRepo.findAllByUsernameLike(username);
-
-        List<Map<String, Object>> results = new ArrayList<>();
-        Map<String, Set<String>> auths = new HashMap<>();
-        for (AccessParameters accessParameter : accessParameters) {
-            if (!auths.containsKey(accessParameter.getUsername())) {
-                auths.put(accessParameter.getUsername(), new HashSet<>());
-            }
-            auths.get(accessParameter.getUsername()).add(accessParameter.getShimKey());
-        }
-        for (final String uid : auths.keySet()) {
-            Map<String, Object> row = new HashMap<>();
-            row.put("username", uid);
-            row.put("auths", auths.get(uid));
-            results.add(row);
-        }
-        return results;
-    }
+//    @RequestMapping(value = "authorizations", produces = APPLICATION_JSON_VALUE)
+//    public List<Map<String, Object>> authorizations(@RequestParam(value = "username") String username)
+//            throws ShimException {
+//
+//        List<AccessParameters> accessParameters = accessParametersRepo.findAllByUsernameLike(username);
+//
+//        List<Map<String, Object>> results = new ArrayList<>();
+//        Map<String, Set<String>> auths = new HashMap<>();
+//        for (AccessParameters accessParameter : accessParameters) {
+//            if (!auths.containsKey(accessParameter.getUsername())) {
+//                auths.put(accessParameter.getUsername(), new HashSet<>());
+//            }
+//            auths.get(accessParameter.getUsername()).add(accessParameter.getShimKey());
+//        }
+//        for (final String uid : auths.keySet()) {
+//            Map<String, Object> row = new HashMap<>();
+//            row.put("username", uid);
+//            row.put("auths", auths.get(uid));
+//            results.add(row);
+//        }
+//        return results;
+//    }
 
     /**
      * Endpoint for triggering domain approval.
@@ -180,7 +196,12 @@ public class LegacyAuthorizationController {
              */
             if (authParams.getClientRedirectUrl() != null) {
                 try {
-                    servletResponse.sendRedirect(authParams.getClientRedirectUrl());
+                	//check if user is authorized. In which case add a signature
+                	//to redirect url
+                	Map<String, String> parameters = new HashMap<>();
+                	parameters.put("DEVICE", shim);
+                	parameters.put("RESULT", String.valueOf(response.getType()));
+                	servletResponse.sendRedirect(appendUri(authParams.getClientRedirectUrl(), createQuery(parameters)));
                 }
                 catch (IOException e) {
                     e.printStackTrace();

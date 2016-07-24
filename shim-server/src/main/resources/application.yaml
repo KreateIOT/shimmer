@@ -3,7 +3,7 @@ spring:
     name: Shimmer
   data:
     mongodb:
-      uri: mongodb://mongo:27017/omh_dsu
+      uri: mongodb://localhost:27017/omh_dsu
   jackson:
     serialization:
       indent_output: true
@@ -35,7 +35,7 @@ openmhealth:
     #    sleepSV: [YOUR_SV_VALUE_FOR_THE_SLEEP_ENDPOINT]
     #  clientId: [YOUR_CLIENT_ID]
     #  clientSecret: [YOUR_CLIENT_SECRET]
-    #fitbit:
+    # fitbit:
     #  partnerAccess: true
     #  clientId: [YOUR_CLIENT_ID]
     #  clientSecret: [YOUR_CLIENT_SECRET]
